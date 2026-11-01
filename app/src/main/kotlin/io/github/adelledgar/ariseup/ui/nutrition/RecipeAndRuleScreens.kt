@@ -139,11 +139,13 @@ fun RecipeEditorScreen(container: AppContainer, recipeId: Long, onDone: () -> Un
                         return@SystemButton
                     }
                     scope.launch {
+                        val wasNew = recipeId == 0L
                         container.foods.createRecipe(
                             name.trim(), n,
                             items.map { RecipeItemEntity(recipeId = recipeId, foodId = it.food.id, grams = it.grams.toDecimalOrNull() ?: 0.0) },
                             id = recipeId,
                         )
+                        if (wasNew) container.achievements.check()
                         onDone()
                     }
                 }, Modifier.fillMaxWidth())

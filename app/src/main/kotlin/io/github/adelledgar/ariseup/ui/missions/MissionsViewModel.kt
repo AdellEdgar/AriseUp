@@ -128,7 +128,8 @@ class MissionsViewModel(
                 )
             }
             events.filterIsInstance<SystemEvent.AchievementUnlocked>().forEach {
-                out += SystemMessage("Misión oculta completada", listOf(it.id))
+                val a = io.github.adelledgar.ariseup.domain.model.Achievement.entries.firstOrNull { x -> x.name == it.id }
+                out += SystemMessage("Misión oculta completada", listOfNotNull(a?.label ?: it.id, a?.title?.let { t -> "Título obtenido: «$t»" }), levelUp = true)
             }
             return out
         }

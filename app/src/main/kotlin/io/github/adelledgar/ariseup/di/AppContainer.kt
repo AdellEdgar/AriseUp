@@ -42,5 +42,9 @@ class AppContainer(
     val planner = MissionPlanner(db, players, missions, foods, settings, gameClock).also {
         it.onUrgentCreated = { id, at -> scheduler.scheduleUrgent(id, at) }
     }
-    val coordinator = DayCloseCoordinator(db, players, foods, settings, gameClock, planner)
+    val achievements = io.github.adelledgar.ariseup.data.repo.AchievementService(db, events)
+    val coordinator = DayCloseCoordinator(db, players, foods, settings, gameClock, planner).also {
+        it.afterClose = { achievements.check() }
+        missions.afterCompletion = { achievements.check() }
+    }
 }
