@@ -19,6 +19,7 @@ class AriseUpApp : Application() {
         container.notifier.createChannels()
         appScope.launch {
             container.routines.seedExercisesIfEmpty()
+            container.genericFoods.seedIfEmpty()
             container.scheduler.scheduleAll()
         }
     }
