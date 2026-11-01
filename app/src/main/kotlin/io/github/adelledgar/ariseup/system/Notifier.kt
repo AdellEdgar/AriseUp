@@ -29,7 +29,6 @@ enum class NotificationKind(val channelId: String, val channelName: String, val 
 /** Notificaciones del Sistema (spec §4.4). */
 class Notifier(private val context: Context) {
     fun createChannels() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java)
         NotificationKind.entries.forEach {
             val importance = if (it.important) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT
