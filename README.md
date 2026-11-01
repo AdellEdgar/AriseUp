@@ -14,6 +14,10 @@ App Android que convierte tu entrenamiento y tu dieta en el **Sistema** de un ca
 - **Estado de descanso** para vacaciones, enfermedad o lesión.
 - Todo **local**: tus datos solo están en tu móvil (con copia de seguridad en JSON).
 
+## Capturas
+
+![Siluetas del Jugador: delgada, con sobrepeso, musculada (rango S) y en la Zona de Penalización](docs/img/siluetas.png)
+
 ## Instalación
 
 Descarga el APK de la última versión en [Releases](https://github.com/AdellEdgar/AriseUp/releases) e instálalo en tu Android (8.0 o superior).
@@ -21,6 +25,11 @@ Descarga el APK de la última versión en [Releases](https://github.com/AdellEdg
 ## Desarrollo
 
 Requiere JDK 17+ y el Android SDK (API 37).
+
+- `domain/`: reglas del juego en Kotlin puro, con tests de JUnit 5 y de propiedades.
+- `app/`: Jetpack Compose, Room, WorkManager, Ktor (Open Food Facts), CameraX + ML Kit y Health Connect.
+- `tools/generic_foods/`: script que genera la tabla de alimentos genéricos.
+- `docs/superpowers/`: especificación de diseño y plan de implementación.
 
 ```bash
 ./gradlew check assembleDebug

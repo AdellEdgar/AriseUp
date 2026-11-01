@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ventana del Sistema con una flecha ascendente (ARISE) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#FF3FD8FF"
+        android:strokeWidth="3"
+        android:pathData="M36,32 L72,32 L76,36 L76,76 L36,76 L32,72 L32,36 Z" />
+    <path
+        android:fillColor="#FF3FD8FF"
+        android:pathData="M54,40 L66,56 L58,56 L58,68 L50,68 L50,56 L42,56 Z" />
+</vector>

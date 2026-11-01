@@ -39,6 +39,8 @@ App Android que simula el **Sistema** de un cazador (inspirada en *Solo Leveling
 - `./gradlew check`: tests y lint.
 - `./gradlew assembleDebug`: APK de debug.
 - `./gradlew :domain:test`: tests del dominio.
+- `./gradlew assembleRelease`: APK firmado (necesita `keystore.properties`; ver `docs/release.md`).
+- `py -I tools/generic_foods/test_build.py`: tests del script de alimentos.
 
 ## Decisiones clave
 
