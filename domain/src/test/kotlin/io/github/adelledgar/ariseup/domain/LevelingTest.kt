@@ -78,11 +78,13 @@ class LevelingTest {
     }
 
     @Test
-    fun xpAlwaysWithinLevelBounds() = runBlocking {
-        checkAll(Arb.int(1..150), Arb.long(-1_000_000L..1_000_000L)) { level, delta ->
-            val (p, _) = Leveling.applyXp(progress(level = level), delta)
-            assertTrue(p.xp >= 0)
-            assertTrue(p.xp < Leveling.xpToNext(p.level))
+    fun xpAlwaysWithinLevelBounds() {
+        runBlocking {
+            checkAll(Arb.int(1..150), Arb.long(-1_000_000L..1_000_000L)) { level, delta ->
+                val (p, _) = Leveling.applyXp(progress(level = level), delta)
+                assertTrue(p.xp >= 0)
+                assertTrue(p.xp < Leveling.xpToNext(p.level))
+            }
         }
     }
 }
