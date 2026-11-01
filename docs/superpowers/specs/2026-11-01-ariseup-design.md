@@ -1,6 +1,6 @@
 # AriseUp: especificación de diseño
 
-Fecha: 2026-11-01 · Estado: pendiente de revisión
+Fecha: 2026-11-01 · Estado: aprobada (2026-11-01)
 
 ## 1. Qué es
 
@@ -216,7 +216,12 @@ La reevaluación aparece como misión durante 3 días. Si no la haces, no hay pe
 ### 3.4 Peso y medidas
 
 - Registro de peso y, opcionalmente, cintura y % de grasa, con gráfica.
-- Alimenta el recálculo de objetivos y la reevaluación de VIT.
+- Alimenta el recálculo de objetivos, la reevaluación de VIT y la silueta del Jugador (§4.5).
+- **Recordatorio de pesaje:**
+  - se configura en Ajustes: cada día, cada 2 días o desactivado (por defecto, cada día a las 08:00);
+  - no se envía si ya hay un peso registrado ese día;
+  - los días que toca aparece la misión **opcional** *"[Registro de condición física]"*, que da el 3 % de `dayPool(n)` y VIT +0,05;
+  - no penaliza.
 
 ## 4. Interfaz
 
@@ -244,6 +249,7 @@ La reevaluación aparece como misión durante 3 días. Si no la haces, no hay pe
 Barra inferior con cuatro pestañas:
 
 1. **Estado:**
+   - la silueta del Jugador (§4.5), en el centro;
    - nombre, título, nivel, rango y barra de XP;
    - las 5 stats y el reparto de puntos libres;
    - racha;
@@ -283,8 +289,47 @@ Barra inferior con cuatro pestañas:
 | Subida de nivel o de rango | Al ocurrir |
 | Reevaluación disponible | Al tocar |
 | Confirmar descanso por enfermedad | Cada 7 días |
+| Pesaje | A la hora elegida, cada día o cada 2 días, si aún no hay peso de hoy |
 
 Usan WorkManager con horarios aproximados (unos minutos de margen). No se usan alarmas exactas.
+
+### 4.5 La silueta del Jugador
+
+En el centro de la pestaña **Estado** hay una figura humana de **sombra**: relleno oscuro con un contorno cian que resplandece. Representa tu cuerpo real y cambia con tus datos.
+
+**Parámetros de forma**
+
+Los calcula la función pura `BodyShapeModel` en `:domain`; todos los valores van de 0 a 1:
+
+- **Grasa:**
+  - si hay % de grasa registrado, se usa ese dato;
+  - si no, se estima con la fórmula de Deurenberg: `%grasa = 1,2·IMC + 0,23·edad − 10,8·(1 si hombre) − 5,4`;
+  - se convierte a la escala 0–1 entre 8 % y 40 % (hombre) o entre 15 % y 48 % (mujer), recortando a los límites.
+- **Músculo:** `clamp((FUE − 5) / 95, 0, 1)`.
+- **Altura:** de 150 a 200 cm, se traduce en una escala vertical de 0,92 a 1,08.
+- **Sexo:** elige las proporciones base (hombros, cadera y cintura).
+
+**Dibujo**
+- Se hace en un `Canvas` de Compose (componente `ShadowAvatar`): vista frontal, sin rostro.
+- **Contorno:** curvas Bézier con unos 24 puntos de control. Cada punto se interpola entre cuatro formas base (delgado, con grasa, musculado y musculado con grasa) según la grasa y el músculo.
+- **Acabado:** relleno con degradado oscuro, contorno con brillo (desenfoque) y, alrededor, un aura de partículas cuya intensidad crece con el rango.
+- **Animación:**
+  - un peso nuevo o un cambio de FUE hace que la figura se transforme suavemente (unos 1,2 s);
+  - en reposo hay una leve "respiración".
+
+**Estados visuales**
+
+| Estado | Aspecto |
+|---|---|
+| Normal | Cian |
+| Zona de Penalización | Rojo, postura ligeramente encorvada y parpadeo del contorno |
+| Estado de descanso | Tono atenuado |
+| Subida de rango | Destello y aura intensa durante la animación |
+
+**Detalle:** al tocar la figura se abre una ventana con:
+- peso actual, IMC y % de grasa (estimado o registrado);
+- variación desde el primer registro;
+- una comparación con la silueta del primer día superpuesta como "fantasma".
 
 ## 5. Arquitectura
 
@@ -299,6 +344,7 @@ Usan WorkManager con horarios aproximados (unos minutos de margen). No se usan a
   - `Nutrition`: Mifflin-St Jeor, objetivos y evaluación de la misión;
   - `UrgentQuestGenerator`, que recibe la fuente de aleatoriedad;
   - `Achievements`;
+  - `BodyShapeModel`: parámetros de la silueta;
   - `DayCloser`: dado el estado, el día y la hora actual, devuelve el nuevo estado y la lista de eventos.
 - **`:app`**: Android con Jetpack Compose y Material 3 con el tema propio. Sus paquetes:
   - `data`: Room (entidades, DAOs y migraciones), repositorios y DataStore;
