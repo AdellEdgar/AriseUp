@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.mlkit.barcode)
+    implementation(libs.health.connect)
 
     testImplementation(libs.junit4)
     testImplementation(libs.kotlin.test)

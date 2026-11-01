@@ -51,6 +51,7 @@ fun RoutineSession(
     sets: List<SetLogEntity>,
     completed: Boolean,
     restSeconds: Int,
+    vibrateOnRestEnd: Boolean = true,
     onLog: (reId: Long, setIndex: Int, reps: Int?, weight: Double?, seconds: Int?, meters: Double?) -> Unit,
 ) {
     var restKey by remember { mutableIntStateOf(0) }
@@ -66,7 +67,7 @@ fun RoutineSession(
                 }
             }
         }
-        if (restKey > 0 && !completed) RestTimer(restSeconds, restKey)
+        if (restKey > 0 && !completed) RestTimer(restSeconds, restKey, vibrateOnRestEnd)
     }
 }
 
@@ -105,7 +106,7 @@ private fun SetRow(index: Int, type: ExerciseType, target: Double, logged: SetLo
 
 /** Cuenta atrás de descanso entre series; vibra y suena al terminar. */
 @Composable
-fun RestTimer(seconds: Int, key: Int) {
+fun RestTimer(seconds: Int, key: Int, vibrate: Boolean = true) {
     val context = LocalContext.current
     var left by remember(key) { mutableIntStateOf(seconds) }
     LaunchedEffect(key) {
@@ -113,7 +114,7 @@ fun RestTimer(seconds: Int, key: Int) {
             delay(1000)
             left--
         }
-        vibrate(context)
+        if (vibrate) vibrate(context)
         SystemSounds.ding()
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

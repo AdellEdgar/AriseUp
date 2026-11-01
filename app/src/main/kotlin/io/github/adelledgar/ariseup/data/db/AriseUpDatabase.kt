@@ -28,6 +28,7 @@ abstract class AriseUpDatabase : RoomDatabase() {
     abstract fun eventDao(): EventDao
     abstract fun achievementDao(): AchievementDao
     abstract fun healthImportDao(): HealthImportDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val NAME = "ariseup.db"

@@ -42,9 +42,14 @@ class AppContainer(
     val planner = MissionPlanner(db, players, missions, foods, settings, gameClock).also {
         it.onUrgentCreated = { id, at -> scheduler.scheduleUrgent(id, at) }
     }
+    val rest = io.github.adelledgar.ariseup.data.repo.RestService(db, events, gameClock)
+    val backup = io.github.adelledgar.ariseup.data.backup.BackupManager(db, settings)
+    val health = io.github.adelledgar.ariseup.health.HealthConnectGateway(context)
+    val healthImporter = io.github.adelledgar.ariseup.health.HealthImporter(db, missions, gameClock, health)
     val achievements = io.github.adelledgar.ariseup.data.repo.AchievementService(db, events)
     val coordinator = DayCloseCoordinator(db, players, foods, settings, gameClock, planner).also {
         it.afterClose = { achievements.check() }
+        it.beforeClose = { day -> runCatching { healthImporter.import(day) } }
         missions.afterCompletion = { achievements.check() }
     }
 }

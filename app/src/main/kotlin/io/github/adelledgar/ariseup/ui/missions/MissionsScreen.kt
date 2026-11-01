@@ -111,7 +111,7 @@ private fun MissionCard(m: MissionEntity, s: MissionsUi, vm: MissionsViewModel, 
                     Text("La rutina ya no existe.", color = SystemColors.muted)
                 } else {
                     val sets by vm.sets(m.id).collectAsStateWithLifecycle(emptyList())
-                    RoutineSession(routine, sets, done, settings.restTimerSeconds) { re, i, r, w, sec, met -> vm.logSet(m.id, re, i, r, w, sec, met) }
+                    RoutineSession(routine, sets, done, settings.restTimerSeconds, settings.vibration) { re, i, r, w, sec, met -> vm.logSet(m.id, re, i, r, w, sec, met) }
                 }
             }
             MissionKind.NUTRITION -> Text(

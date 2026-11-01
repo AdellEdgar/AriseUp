@@ -20,6 +20,7 @@ class AriseUpApp : Application() {
         appScope.launch {
             container.routines.seedExercisesIfEmpty()
             container.genericFoods.seedIfEmpty()
+            io.github.adelledgar.ariseup.ui.components.SystemSounds.enabled = container.settings.current().sound
             container.scheduler.scheduleAll()
         }
     }
