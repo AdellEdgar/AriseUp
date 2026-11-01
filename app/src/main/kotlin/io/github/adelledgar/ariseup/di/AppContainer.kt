@@ -11,6 +11,10 @@ import io.github.adelledgar.ariseup.data.repo.FoodRepository
 import io.github.adelledgar.ariseup.data.repo.MissionRepository
 import io.github.adelledgar.ariseup.data.repo.PlayerRepository
 import io.github.adelledgar.ariseup.data.repo.RoutineRepository
+import io.github.adelledgar.ariseup.system.DayCloseCoordinator
+import io.github.adelledgar.ariseup.system.MissionPlanner
+import io.github.adelledgar.ariseup.system.Notifier
+import io.github.adelledgar.ariseup.system.Scheduler
 import java.time.Clock
 
 /** Inyección de dependencias manual: un único contenedor por proceso. */
@@ -27,4 +31,10 @@ class AppContainer(
     val missions = MissionRepository(db, players, events, gameClock, clock)
     val foods = FoodRepository(db, clock)
     val body = BodyRepository(db)
+    val notifier = Notifier(context)
+    val scheduler = Scheduler(context, clock, gameClock, settings)
+    val planner = MissionPlanner(db, players, missions, foods, settings, gameClock).also {
+        it.onUrgentCreated = { id, at -> scheduler.scheduleUrgent(id, at) }
+    }
+    val coordinator = DayCloseCoordinator(db, players, foods, settings, gameClock, planner)
 }
