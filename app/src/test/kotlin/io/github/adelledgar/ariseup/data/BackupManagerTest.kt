@@ -20,7 +20,7 @@ import kotlin.test.assertEquals
 @RunWith(AndroidJUnit4::class)
 class BackupManagerTest {
     private val env = TestEnv()
-    private val backup = BackupManager(env.db, env.settings)
+    private val backup = BackupManager(env.db, env.settings, env.gameClock)
 
     private suspend fun seed() {
         env.seedPlayer(level = 7, xp = 120)
@@ -38,7 +38,7 @@ class BackupManagerTest {
         val out = ByteArrayOutputStream()
         backup.export(out)
         val other = TestEnv()
-        val r = BackupManager(other.db, other.settings).import(out.toByteArray().inputStream())
+        val r = BackupManager(other.db, other.settings, other.gameClock).import(out.toByteArray().inputStream())
         assertEquals(ImportResult.Ok, r)
         assertEquals(7, other.db.playerDao().get()!!.level)
         assertEquals(1, other.db.missionDao().all().size)

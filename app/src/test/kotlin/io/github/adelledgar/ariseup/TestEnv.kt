@@ -56,12 +56,12 @@ class TestEnv(start: String = "2026-11-02T10:00") {
 
     val today: LocalDate get() = runBlocking { gameClock.today() }
 
-    fun seedPlayer(level: Int = 1, xp: Long = 0, baseline: DailyTargets? = DailyTargets(10, 10, 10, 1.0)) = runBlocking {
+    fun seedPlayer(level: Int = 1, xp: Long = 0, baseline: DailyTargets? = DailyTargets(10, 10, 10, 1.0), createdOn: LocalDate? = null) = runBlocking {
         db.playerDao().upsert(
             PlayerEntity(
                 name = "Jugador", sex = Sex.MALE, birthDate = LocalDate.of(1996, 1, 1), heightCm = 180.0,
                 activity = ActivityLevel.MODERATE, goal = Goal.LOSE_FAT, level = level, xp = xp, freePoints = 0,
-                stats = StatBlock.initial(), streak = 0, titleId = null, baseline = baseline, createdOn = today,
+                stats = StatBlock.initial(), streak = 0, titleId = null, baseline = baseline, createdOn = createdOn ?: today.minusDays(30),
             ),
         )
     }

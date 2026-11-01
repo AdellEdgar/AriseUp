@@ -166,6 +166,20 @@ class DayCloserTest {
     }
 
     @Test
+    fun restDayDoesNotDegradeExistingPenalty() {
+        val inPenalty = DayCloser.closeExercise(fresh, input(outcomes = listOf(daily(false)))).state
+        val r = DayCloser.closeExercise(inPenalty, input(day = d.plusDays(1), outcomes = listOf(daily(false)), restActive = true))
+        assertTrue(r.events.none { it is SystemEvent.PenaltyDegraded })
+        assertEquals(inPenalty.progress, r.state.progress)
+    }
+
+    @Test
+    fun nutritionEvaluatedDuringRestNoPenalty() {
+        val r = DayCloser.closeNutrition(fresh, nutInput(nutritionMet = false).copy(evaluatedDuringRest = true))
+        assertNull(r.state.penalty)
+    }
+
+    @Test
     fun nutritionInRestNeverPenalizes() {
         assertNull(DayCloser.closeNutrition(fresh, nutInput(nutritionMet = false, restActive = true)).state.penalty)
     }

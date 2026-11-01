@@ -17,14 +17,16 @@ private val Context.container get() = (applicationContext as AriseUpApp).contain
 class DayCloseWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         val c = applicationContext.container
-        val events = c.coordinator.catchUp()
-        c.notifier.postCloseEvents(events)
-        if (inputData.getBoolean(KEY_AT_RESET, false)) {
-            val today = c.gameClock.today()
-            if (c.db.missionDao().forDateAndKind(today, MissionKind.DAILY).isNotEmpty()) {
+        val atReset = inputData.getBoolean(KEY_AT_RESET, false)
+        try {
+            val events = c.coordinator.catchUp()
+            c.notifier.postCloseEvents(events)
+            if (atReset && c.db.missionDao().forDateAndKind(c.gameClock.today(), MissionKind.DAILY).isNotEmpty()) {
                 c.notifier.post(NotificationKind.DAILY, "[Misión diaria disponible: Preparación para volverse fuerte]")
             }
-            c.scheduler.scheduleNextReset()
+        } finally {
+            // La cadena de reinicios no se corta aunque el cierre falle.
+            if (atReset) c.scheduler.scheduleNextReset()
         }
         return Result.success()
     }

@@ -43,7 +43,7 @@ class AppContainer(
         it.onUrgentCreated = { id, at -> scheduler.scheduleUrgent(id, at) }
     }
     val rest = io.github.adelledgar.ariseup.data.repo.RestService(db, events, gameClock)
-    val backup = io.github.adelledgar.ariseup.data.backup.BackupManager(db, settings)
+    val backup = io.github.adelledgar.ariseup.data.backup.BackupManager(db, settings, gameClock)
     val health = io.github.adelledgar.ariseup.health.HealthConnectGateway(context)
     val healthImporter = io.github.adelledgar.ariseup.health.HealthImporter(db, missions, gameClock, health)
     val achievements = io.github.adelledgar.ariseup.data.repo.AchievementService(db, events)

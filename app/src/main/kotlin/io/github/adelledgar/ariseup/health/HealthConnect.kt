@@ -9,6 +9,7 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import androidx.room.withTransaction
 import io.github.adelledgar.ariseup.data.GameClock
 import io.github.adelledgar.ariseup.data.db.AriseUpDatabase
 import io.github.adelledgar.ariseup.data.db.DayStatus
@@ -73,12 +74,22 @@ class HealthImporter(
         val runs = source.runsBetween(gameClock.startOf(day), gameClock.startOf(day.plusDays(1))).distinctBy { it.recordId }
         val daily = db.missionDao().forDateAndKind(day, MissionKind.DAILY).firstOrNull()
         val penalty = db.missionDao().openOfKind(MissionKind.PENALTY)
+        if (daily == null && penalty == null) return
         for (run in runs) {
             if (db.healthImportDao().exists(run.recordId) || run.meters <= 0) continue
             val km = run.meters / 1000
-            daily?.let { missions.addDailyProgress(it.id, DailyExercise.RUN, km, run.minutes) }
-            penalty?.let { missions.addDailyProgress(it.id, DailyExercise.RUN, km, run.minutes) }
-            db.healthImportDao().insert(HealthImportEntity(run.recordId, daily?.id ?: penalty?.id ?: 0))
+            // Todo o nada: si falla a medias, la carrera se reintenta entera la próxima vez.
+            db.withTransaction {
+                daily?.takeIf { it.completedAt == null }?.let { missions.addDailyProgress(it.id, DailyExercise.RUN, km, run.minutes) }
+                penalty?.let { missions.addDailyProgress(it.id, DailyExercise.RUN, km, run.minutes) }
+                db.healthImportDao().insert(HealthImportEntity(run.recordId, daily?.id ?: penalty!!.id))
+            }
         }
+    }
+
+    /** Importa los días aún abiertos (incluido hoy). Se llama con la app en primer plano, que es cuando Health Connect deja leer. */
+    suspend fun importOpenDays() {
+        if (!source.available()) return
+        db.dayDao().withStatus(DayStatus.OPEN).forEach { import(it.date) }
     }
 }

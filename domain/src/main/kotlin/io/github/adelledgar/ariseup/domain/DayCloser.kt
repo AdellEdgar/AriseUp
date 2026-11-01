@@ -18,7 +18,7 @@ object DayCloser {
         var progress = s.progress
         var penalty = s.penalty
 
-        if (penalty != null) {
+        if (penalty != null && !input.restActive) {
             val (p, ps, ev) = Penalty.degradeOnClose(progress, penalty, input.day)
             progress = p
             penalty = ps
@@ -80,7 +80,7 @@ object DayCloser {
         }
 
         val failed = (input.nutritionMandatory == true && !input.nutritionMet) || input.rules.any { it.mandatory && !it.met }
-        if (failed && !input.restActive) {
+        if (failed && !input.restActive && !input.evaluatedDuringRest) {
             if (penalty == null) {
                 penalty = startNutritionPenalty(input.evaluatedDuring, s.baseline, level)
                 events += SystemEvent.PenaltyStarted(input.evaluatedDuring.toString())

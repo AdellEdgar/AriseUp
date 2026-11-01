@@ -45,6 +45,9 @@ class DayCloseCoordinator(
 
     private val mutex = Mutex()
 
+    /** Ejecuta [block] sin que ningún cierre de día corra a la vez (p. ej. al importar una copia). */
+    suspend fun <T> exclusive(block: suspend () -> T): T = mutex.withLock { block() }
+
     suspend fun catchUp(): List<SystemEvent> = mutex.withLock {
         if (players.current() == null) return emptyList()
         val today = gameClock.today()
@@ -117,6 +120,7 @@ class DayCloseCoordinator(
             rules = rules,
             mealsWithEntries = meals,
             restActive = day.restActive,
+            evaluatedDuringRest = db.restDao().all().any { it.toDomain().covers(day.date.plusDays(1)) },
         )
         val r = DayCloser.closeNutrition(state, input)
         players.saveState(r.state, r.events, day.date)

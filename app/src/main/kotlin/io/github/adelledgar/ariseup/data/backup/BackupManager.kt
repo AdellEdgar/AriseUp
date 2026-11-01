@@ -67,7 +67,11 @@ sealed interface ImportResult {
 }
 
 /** Copia de seguridad completa en JSON (spec §5.3). */
-class BackupManager(private val db: AriseUpDatabase, private val settings: SettingsStore) {
+class BackupManager(
+    private val db: AriseUpDatabase,
+    private val settings: SettingsStore,
+    private val gameClock: io.github.adelledgar.ariseup.data.GameClock,
+) {
     private val json = Json(AppJson) { prettyPrint = false }
 
     suspend fun export(out: OutputStream) {
@@ -82,7 +86,7 @@ class BackupManager(private val db: AriseUpDatabase, private val settings: Setti
             rests = db.restDao().all(), achievements = db.achievementDao().all(), events = db.eventDao().all(),
             health = db.healthImportDao().all(),
         )
-        val backup = Backup(SCHEMA_VERSION, System.currentTimeMillis(), settings.current(), tables)
+        val backup = Backup(SCHEMA_VERSION, gameClock.now().toEpochMilli(), settings.current(), tables)
         out.bufferedWriter(Charsets.UTF_8).use { it.write(json.encodeToString(Backup.serializer(), backup)) }
     }
 
@@ -94,6 +98,14 @@ class BackupManager(private val db: AriseUpDatabase, private val settings: Setti
         if (version > SCHEMA_VERSION) return ImportResult.NewerSchema(version)
         val backup = runCatching { json.decodeFromString(Backup.serializer(), text) }.getOrNull() ?: return ImportResult.InvalidFile
         val t = backup.tables
+        if (t.player.isEmpty()) return ImportResult.InvalidFile
+        val today = gameClock.today()
+        // Los días entre la copia y hoy no se jugaron con esta copia: se cierran como descanso, sin castigo.
+        val lastDay = t.days.maxOfOrNull { it.date }
+        val days = t.days.map { d ->
+            if (d.date < today && d.status != io.github.adelledgar.ariseup.data.db.DayStatus.CLOSED) d.copy(status = io.github.adelledgar.ariseup.data.db.DayStatus.CLOSED, restActive = true) else d
+        } + generateSequence(lastDay?.plusDays(1)) { it.plusDays(1) }.takeWhile { it < today }
+            .map { DayEntity(it, io.github.adelledgar.ariseup.data.db.DayStatus.CLOSED, restActive = true, targets = null) }
         val b = db.backupDao()
         val restored = runCatching {
             db.withTransaction {
@@ -102,7 +114,7 @@ class BackupManager(private val db: AriseUpDatabase, private val settings: Setti
                 b.clearFoods()
                 b.clearSets(); b.clearRoutineExercises(); b.clearRoutines(); b.clearExercises(); b.clearMissions()
                 b.clearDays(); b.clearPenalty(); b.clearPlayer()
-                b.players(t.player); b.penalties(t.penalty); b.days(t.days); b.missions(t.missions); b.exercises(t.exercises)
+                b.players(t.player); b.penalties(t.penalty); b.days(days); b.missions(t.missions); b.exercises(t.exercises)
                 b.routines(t.routines); b.routineExercises(t.routineExercises); b.sets(t.sets); b.foods(t.foods)
                 b.recipes(t.recipes); b.recipeItems(t.recipeItems); b.foodLogs(t.foodLogs); b.rules(t.rules)
                 b.ruleLogs(t.ruleLogs); b.body(t.body); b.tests(t.tests); b.rests(t.rests); b.achievements(t.achievements)

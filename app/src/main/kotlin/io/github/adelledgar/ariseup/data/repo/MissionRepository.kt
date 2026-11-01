@@ -69,7 +69,11 @@ class MissionRepository(
         db.missionDao().insert(MissionEntity(date = date, kind = kind, mandatory = mandatory, refId = refId, title = title))
 
     /** Suma repeticiones o km a la misión diaria, de penalización o urgente; la completa al llegar al objetivo. */
-    suspend fun addDailyProgress(missionId: Long, exercise: DailyExercise, amount: Double, minutes: Double = 0.0): List<SystemEvent> {
+    suspend fun addDailyProgress(missionId: Long, exercise: DailyExercise, amount: Double, minutes: Double = 0.0): List<SystemEvent> =
+        // Leer y escribir el progreso en la misma transacción: dos registros seguidos no se pisan.
+        db.withTransaction { addDailyProgressLocked(missionId, exercise, amount, minutes) }
+
+    private suspend fun addDailyProgressLocked(missionId: Long, exercise: DailyExercise, amount: Double, minutes: Double): List<SystemEvent> {
         val m = checkNotNull(db.missionDao().get(missionId)) { "Misión inexistente" }
         ensureOpen(m)
         if (m.completedAt != null) return emptyList()

@@ -29,6 +29,8 @@ data class NutritionDayInput(
     val rules: List<RuleOutcome>,
     val mealsWithEntries: Int,
     val restActive: Boolean,
+    /** El día en que se evalúa (D+1) está en descanso: no se inicia penalización. */
+    val evaluatedDuringRest: Boolean = false,
 )
 
 data class CloseResult(val state: PlayerState, val events: List<SystemEvent>)

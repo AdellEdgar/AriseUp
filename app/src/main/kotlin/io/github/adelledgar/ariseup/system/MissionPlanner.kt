@@ -44,25 +44,27 @@ class MissionPlanner(
             val s = settings.current()
             val rests = db.restDao().all().map { it.toDomain() }
             val rest = rests.any { it.covers(day) }
+            // El día en que se crea el Jugador es de prueba: nada es obligatorio (se puede empezar a las 23:30).
+            val optional = rest || players.currentEntity()?.createdOn == day
             val targets = state.baseline?.let {
                 DailyQuestScaling.targets(it, state.progress.level, RestMode.isReturnWeek(day, rests))
             }
             db.dayDao().upsert(DayEntity(day, DayStatus.OPEN, restActive = rest, targets = targets))
 
-            if (targets != null) missions.createDaily(day, targets, mandatory = !rest)
+            if (targets != null) missions.createDaily(day, targets, mandatory = !optional)
 
             val dayBit = 1 shl (day.dayOfWeek.value - 1)
             db.routineDao().active().filter { it.daysOfWeekMask and dayBit != 0 }.forEach {
-                missions.createSimple(day, MissionKind.ROUTINE, it.name, mandatory = it.mandatory && !rest, refId = it.id)
+                missions.createSimple(day, MissionKind.ROUTINE, it.name, mandatory = it.mandatory && !optional, refId = it.id)
             }
 
             when (s.nutritionMode) {
-                NutritionMode.MANDATORY -> missions.createSimple(day, MissionKind.NUTRITION, "Nutrición del cazador", mandatory = !rest)
+                NutritionMode.MANDATORY -> missions.createSimple(day, MissionKind.NUTRITION, "Nutrición del cazador", mandatory = !optional)
                 NutritionMode.OPTIONAL -> missions.createSimple(day, MissionKind.NUTRITION, "Nutrición del cazador", mandatory = false)
                 NutritionMode.OFF -> Unit
             }
             foods.activeRules().forEach {
-                missions.createSimple(day, MissionKind.DIET_RULE, it.name, mandatory = it.mandatory && !rest, refId = it.id)
+                missions.createSimple(day, MissionKind.DIET_RULE, it.name, mandatory = it.mandatory && !optional, refId = it.id)
             }
 
             if (weighInDue(day, s.weighInFrequency)) {
@@ -75,12 +77,15 @@ class MissionPlanner(
             if (!generateUrgent || targets == null) return@withTransaction null
             val monday = day.minusDays((day.dayOfWeek.value - 1).toLong())
             val spec = UrgentQuestGenerator.maybeGenerate(
-                day, rng, db.missionDao().urgentCount(monday, monday.plusDays(6)), rest, state.penalty != null, targets,
+                day, rng, db.missionDao().urgentCount(monday, monday.plusDays(6)), optional, state.penalty != null, targets,
             ) ?: return@withTransaction null
             val dayStart = gameClock.startOf(day)
             val dayEnd = gameClock.startOf(day.plusDays(1))
-            val appear = maxOf(dayStart, LocalDateTime.of(day, spec.appearAt).atZone(gameClock.clock.zone).toInstant())
-            val deadline = minOf(dayEnd, appear.plus(spec.durationHours.toLong(), ChronoUnit.HOURS))
+            val scheduled = LocalDateTime.of(day, spec.appearAt).atZone(gameClock.clock.zone).toInstant()
+            val appear = maxOf(dayStart, scheduled, gameClock.now())
+            val deadline = appear.plus(spec.durationHours.toLong(), ChronoUnit.HOURS)
+            // Nunca una urgente que ya no se pueda cumplir entera dentro del día.
+            if (deadline > dayEnd) return@withTransaction null
             missions.createUrgent(day, spec.exercise, spec.amount, appear, deadline) to appear
         }
         urgent?.let { (id, at) -> onUrgentCreated(id, at) }

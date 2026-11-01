@@ -5,6 +5,7 @@ import io.github.adelledgar.ariseup.domain.GameDay
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /** Traduce el reloj real a días de juego según la hora de reinicio. */
 class GameClock(val clock: Clock, private val settings: SettingsStore) {
@@ -16,3 +17,12 @@ class GameClock(val clock: Clock, private val settings: SettingsStore) {
 
     fun now(): Instant = clock.instant()
 }
+
+/** Emite el día de juego actual y vuelve a emitir cuando cambia (comprueba cada [periodMs]). */
+fun gameDays(gameClock: GameClock, periodMs: Long = 60_000): kotlinx.coroutines.flow.Flow<LocalDate> =
+    kotlinx.coroutines.flow.flow {
+        while (true) {
+            emit(gameClock.today())
+            kotlinx.coroutines.delay(periodMs)
+        }
+    }.distinctUntilChanged()

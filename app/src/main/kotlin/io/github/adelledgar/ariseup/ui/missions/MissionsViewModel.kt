@@ -54,7 +54,7 @@ class MissionsViewModel(
     val messages: SharedFlow<SystemMessage> = _messages
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val ui: StateFlow<MissionsUi?> = flow { emit(gameClock.today()) }
+    val ui: StateFlow<MissionsUi?> = io.github.adelledgar.ariseup.data.gameDays(gameClock)
         .flatMapLatest { today ->
             day.value = today
             combine(missions.observe(today), db.penaltyDao().observe()) { list, _ ->

@@ -53,6 +53,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+/** Solo se permite cambiar la hora de reinicio si el día de juego en curso no cambia (no cierra ni reabre días). */
+fun resetChangeKeepsDay(now: java.time.Instant, zone: java.time.ZoneId, old: java.time.LocalTime, new: java.time.LocalTime): Boolean =
+    io.github.adelledgar.ariseup.domain.GameDay.of(now, zone, old) == io.github.adelledgar.ariseup.domain.GameDay.of(now, zone, new)
+
 private fun hm(minutes: Int) = "%02d:%02d".format(minutes / 60, minutes % 60)
 
 @Composable
@@ -78,8 +82,8 @@ fun SettingsScreen(container: AppContainer, onRest: () -> Unit, onBack: () -> Un
     }
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
-            context.contentResolver.openOutputStream(uri)?.use { container.backup.export(it) }
-            Toast.makeText(context, "Copia guardada", Toast.LENGTH_SHORT).show()
+            val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { container.backup.export(it) } }.isSuccess
+            Toast.makeText(context, if (ok) "Copia guardada" else "No se pudo guardar la copia", Toast.LENGTH_SHORT).show()
         }
     }
     var pendingImport by remember { mutableStateOf<android.net.Uri?>(null) }
@@ -132,8 +136,14 @@ fun SettingsScreen(container: AppContainer, onRest: () -> Unit, onBack: () -> Un
         }
         item {
             SystemWindow("Sistema") {
-                TimeRow("Hora de reinicio diario", settings.resetMinutes) { m -> update { it.copy(resetMinutes = m) } }
-                Text("Cambiarla durante el día puede alargar o acortar el día en curso.", color = SystemColors.muted, style = MaterialTheme.typography.bodySmall)
+                TimeRow("Hora de reinicio diario", settings.resetMinutes) { m ->
+                    val ok = resetChangeKeepsDay(
+                        container.clock.instant(), container.clock.zone, settings.resetTime, java.time.LocalTime.of(m / 60, m % 60),
+                    )
+                    if (ok) update { it.copy(resetMinutes = m) }
+                    else Toast.makeText(context, "Ahora no: el cambio cerraría o reabriría el día en curso. Prueba en otro momento del día.", Toast.LENGTH_LONG).show()
+                }
+                Text("Solo se puede cambiar cuando no altera el día en curso.", color = SystemColors.muted, style = MaterialTheme.typography.bodySmall)
                 Text("Misión de nutrición", color = SystemColors.muted)
                 ChoiceChips(NutritionMode.entries, settings.nutritionMode, { it.label }, { v -> update { it.copy(nutritionMode = v) } })
                 Text("Recordatorio de pesaje", color = SystemColors.muted)
@@ -184,7 +194,10 @@ fun SettingsScreen(container: AppContainer, onRest: () -> Unit, onBack: () -> Un
                 TextButton(onClick = {
                     pendingImport = null
                     scope.launch {
-                        val r = context.contentResolver.openInputStream(uri)?.use { container.backup.import(it) } ?: ImportResult.InvalidFile
+                        val r = runCatching {
+                            container.coordinator.exclusive { context.contentResolver.openInputStream(uri)?.use { container.backup.import(it) } }
+                        }.getOrNull() ?: ImportResult.InvalidFile
+                        if (r == ImportResult.Ok) container.scheduler.scheduleAll()
                         val msg = when (r) {
                             ImportResult.Ok -> "Copia importada"
                             ImportResult.InvalidFile -> "Archivo no válido: no se ha cambiado nada"
