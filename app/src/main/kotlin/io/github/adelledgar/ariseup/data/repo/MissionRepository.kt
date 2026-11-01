@@ -93,6 +93,37 @@ class MissionRepository(
         }
     }
 
+    /** Registra (o corrige) una serie de una rutina; completa la misión cuando todas las series llegan al objetivo. */
+    suspend fun logSet(
+        missionId: Long,
+        routineExerciseId: Long,
+        setIndex: Int,
+        reps: Int? = null,
+        weightKg: Double? = null,
+        seconds: Int? = null,
+        meters: Double? = null,
+    ): List<SystemEvent> {
+        val m = checkNotNull(db.missionDao().get(missionId)) { "Misión inexistente" }
+        check(m.kind == MissionKind.ROUTINE) { "Solo las rutinas tienen series" }
+        ensureOpen(m)
+        if (m.completedAt != null) return emptyList()
+        val routineDao = db.routineDao()
+        val existing = routineDao.findSet(missionId, routineExerciseId, setIndex)
+        routineDao.upsertSet(
+            io.github.adelledgar.ariseup.data.db.SetLogEntity(
+                id = existing?.id ?: 0, missionId = missionId, routineExerciseId = routineExerciseId, setIndex = setIndex,
+                reps = reps, weightKg = weightKg, seconds = seconds, meters = meters,
+            ),
+        )
+        val links = m.refId?.let { routineDao.exercisesOf(it) }.orEmpty()
+        val sets = routineDao.setsOf(missionId)
+        val done = links.isNotEmpty() && links.all { link ->
+            val type = routineDao.exercise(link.exerciseId)?.type ?: return@all false
+            (0 until link.sets).all { i -> sets.firstOrNull { it.routineExerciseId == link.id && it.setIndex == i }?.meets(link.targetPerSet, type) == true }
+        }
+        return if (done) complete(missionId) else emptyList()
+    }
+
     /** Completa una misión y concede su recompensa una sola vez. */
     suspend fun complete(missionId: Long): List<SystemEvent> {
         val result = db.withTransaction {

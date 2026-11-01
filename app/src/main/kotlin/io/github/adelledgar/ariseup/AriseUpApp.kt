@@ -17,6 +17,9 @@ class AriseUpApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         container.notifier.createChannels()
-        appScope.launch { container.scheduler.scheduleAll() }
+        appScope.launch {
+            container.routines.seedExercisesIfEmpty()
+            container.scheduler.scheduleAll()
+        }
     }
 }

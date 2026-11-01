@@ -31,6 +31,7 @@ class AppContainer(
     val missions = MissionRepository(db, players, events, gameClock, clock)
     val foods = FoodRepository(db, clock)
     val body = BodyRepository(db)
+    val reevaluation = io.github.adelledgar.ariseup.data.repo.ReevaluationService(db, players, body, foods, missions, gameClock)
     val notifier = Notifier(context)
     val scheduler = Scheduler(context, clock, gameClock, settings)
     val planner = MissionPlanner(db, players, missions, foods, settings, gameClock).also {
