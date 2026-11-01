@@ -74,6 +74,15 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime)
 
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.json)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.mlkit.barcode)
+
     testImplementation(libs.junit4)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.robolectric)
@@ -83,4 +92,5 @@ dependencies {
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.work.testing)
+    testImplementation(libs.ktor.client.mock)
 }

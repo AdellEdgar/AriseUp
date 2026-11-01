@@ -31,6 +31,10 @@ class AppContainer(
     val missions = MissionRepository(db, players, events, gameClock, clock)
     val foods = FoodRepository(db, clock)
     val body = BodyRepository(db)
+    val off = io.github.adelledgar.ariseup.network.OpenFoodFactsClient(
+        io.github.adelledgar.ariseup.network.OpenFoodFactsClient.httpClient(io.ktor.client.engine.okhttp.OkHttp.create()),
+        io.github.adelledgar.ariseup.BuildConfig.VERSION_NAME,
+    )
     val genericFoods = io.github.adelledgar.ariseup.data.seed.GenericFoodsSeeder(context, db)
     val reevaluation = io.github.adelledgar.ariseup.data.repo.ReevaluationService(db, players, body, foods, missions, gameClock)
     val notifier = Notifier(context)
